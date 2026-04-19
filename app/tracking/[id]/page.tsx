@@ -109,7 +109,7 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
   )
 
   const isStepActive = (current: string, step: string) => {
-    const levels: Record<string, number> = { 'pending': 0, 'preparing': 1, 'ready': 2, 'out_for_delivery': 3, 'delivered': 4 }
+    const levels: Record<string, number> = { 'pending': 0, 'preparing': 1, 'ready': 2, 'out_for_delivery': 3, 'arrived': 4, 'delivered': 5 }
     return levels[current] >= levels[step]
   }
 
@@ -119,6 +119,7 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
       case 'preparing': return 'Baking in Oven'
       case 'ready': return 'Quality Checked'
       case 'out_for_delivery': return 'Delivery Dispatched'
+      case 'arrived': return 'Driver Arrived'
       case 'delivered': return 'Delivered'
       default: return 'Processing Ticket'
     }
@@ -145,7 +146,7 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
                   </p>
                </div>
                <div className="w-16 h-16 bg-brand-orange/10 text-brand-orange rounded-2xl flex items-center justify-center shadow-inner">
-                  <Truck size={32} className={order.status === 'out_for_delivery' ? 'animate-bounce' : ''} />
+                  <Truck size={32} className={(order.status === 'out_for_delivery' || order.status === 'arrived') ? 'animate-bounce' : ''} />
                </div>
             </div>
             <div className="flex items-center gap-4 pt-6 border-t border-gray-50">
@@ -156,7 +157,35 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
                <div className="w-px h-8 bg-gray-100" />
                <div className="text-left">
                   <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Est. Arrival</p>
-                  <p className="text-sm font-black text-brand-dark">25-30 MINS</p>
+                  <p className="text-sm font-black text-brand-dark">{
+                    (() => {
+                      if (order.status === 'delivered') return 'Delivered'
+                      if (order.status === 'arrived') return 'Arrived'
+                      if (order.status === 'cancelled') return 'Cancelled'
+                      let lat1 = STORE_LOCATION[0]
+                      let lon1 = STORE_LOCATION[1]
+                      if (order.status === 'out_for_delivery' && location) {
+                         lat1 = location.lat; lon1 = location.lng
+                      }
+                      let lat2 = order.customerLat || STORE_LOCATION[0]
+                      let lon2 = order.customerLng || STORE_LOCATION[1]
+                      
+                      const R = 6371; // km
+                      const dLat = (lat2 - lat1) * Math.PI / 180;
+                      const dLon = (lon2 - lon1) * Math.PI / 180;
+                      const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                        Math.sin(dLon/2) * Math.sin(dLon/2);
+                      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                      const distanceKm = R * c; 
+                      
+                      let baseMins = Math.ceil(distanceKm * 3) // 3 mins per km driving approx
+                      if (['pending', 'preparing'].includes(order.status)) baseMins += 20 // prep time
+                      if (order.status === 'ready') baseMins += 5 // assignment time
+                      
+                      return Math.max(5, baseMins) + " MINS"
+                    })()
+                  }</p>
                </div>
             </div>
          </div>
@@ -169,6 +198,7 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
                  { key: 'preparing', label: 'Baking Now', sub: 'Freshness in progress', icon: ChefHat },
                  { key: 'ready', label: 'Bakes Packaged', sub: 'Final quality seal', icon: Package },
                  { key: 'out_for_delivery', label: 'On Route', sub: 'Delivery in transit', icon: Navigation },
+                 { key: 'arrived', label: 'Driver Arrived', sub: 'Ready for pickup', icon: MapPin },
                  { key: 'delivered', label: 'Handover Complete', sub: 'Enjoy your delights!', icon: Heart }
                ].map((step, i, arr) => {
                  const active = isStepActive(order.status, step.key)

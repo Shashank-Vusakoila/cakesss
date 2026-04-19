@@ -63,8 +63,8 @@ export interface OrderItem {
   image: string
 }
 
-export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'out_for_delivery' | 'delivered' | 'completed' | 'cancelled'
-export type DeliveryStatus = 'pending' | 'confirmed' | 'out_for_delivery' | 'delivered'
+export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'out_for_delivery' | 'arrived' | 'delivered' | 'completed' | 'cancelled'
+export type DeliveryStatus = 'pending' | 'confirmed' | 'out_for_delivery' | 'arrived' | 'delivered'
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'refunded'
 
 export interface DeliveryLocation {

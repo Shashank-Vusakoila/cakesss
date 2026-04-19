@@ -17,10 +17,10 @@ export default function DeliveryPartnerPage() {
 
   useEffect(() => {
     const unsub = subscribeToOrders((all) => {
-      const active = all.filter(o => o.status === 'ready' || o.status === 'out_for_delivery')
+      const active = all.filter(o => o.status === 'ready' || o.status === 'out_for_delivery' || o.status === 'arrived')
       active.sort((a, b) => {
-        if (a.status === 'out_for_delivery' && b.status !== 'out_for_delivery') return -1
-        if (b.status === 'out_for_delivery' && a.status !== 'out_for_delivery') return 1
+        if (['out_for_delivery', 'arrived'].includes(a.status) && !['out_for_delivery', 'arrived'].includes(b.status)) return -1
+        if (['out_for_delivery', 'arrived'].includes(b.status) && !['out_for_delivery', 'arrived'].includes(a.status)) return 1
         return b.createdAt.getTime() - a.createdAt.getTime()
       })
       setOrders(active)
@@ -212,6 +212,13 @@ export default function DeliveryPartnerPage() {
                     </a>
 
                     {order.status === 'out_for_delivery' ? (
+                      <button
+                        onClick={() => updateOrderStatus(order.id, 'arrived')}
+                        className="col-span-2 py-5 bg-teal-500 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
+                      >
+                        <MapPin size={20} /> Mark Arrived
+                      </button>
+                    ) : order.status === 'arrived' ? (
                       <button
                         onClick={() => markDelivered(order.id)}
                         className="col-span-2 py-5 bg-brand-primary text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-brand-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-3"
