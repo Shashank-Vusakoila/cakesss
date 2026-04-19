@@ -5,10 +5,10 @@ import { MenuItem, Category } from '@/types'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Pencil, Trash2, X, Loader2, ImageIcon,
-  ToggleLeft, ToggleRight, Upload, CheckCircle2, AlertCircle, Link as LinkIcon
+  ToggleLeft, ToggleRight, Upload, CheckCircle2, AlertCircle, Link as LinkIcon, Star, ArrowRight
 } from 'lucide-react'
 import Image from 'next/image'
-import { formatCurrency } from '@/utils'
+import { formatCurrency, getValidImageUrl } from '@/utils'
 import toast from 'react-hot-toast'
 
 const emptyItem: Omit<MenuItem, 'id'> = {
@@ -298,47 +298,47 @@ export default function MenuManagementPage() {
   const filtered = items.filter(i => filterCat === 'all' || i.category === filterCat)
 
   return (
-    <div className="p-6">
+    <div className="p-0">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 gap-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-800">Menu Management</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{items.length} items · {categories.length} categories</p>
+          <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2 block">Catalogue</span>
+          <h1 className="font-display text-4xl font-black text-gray-900 tracking-tighter">Menu Management</h1>
+          <p className="text-gray-400 text-sm font-medium mt-1">{items.length} items across {categories.length} categories</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => setCatModal(true)} className="btn-secondary text-sm py-2 px-4 flex items-center gap-1.5">
-            <Plus size={16} /> Category
+        <div className="flex gap-3">
+          <button onClick={() => setCatModal(true)} className="btn-secondary text-xs px-6 py-3.5 flex items-center gap-2">
+            <Plus size={16} /> ADD CATEGORY
           </button>
-          <button onClick={openAdd} className="btn-primary text-sm py-2 px-4 flex items-center gap-1.5">
-            <Plus size={16} /> Add Item
+          <button onClick={openAdd} className="btn-primary text-xs px-6 py-3.5 flex items-center gap-2 shadow-[0_10px_30px_rgba(16,185,129,0.2)]">
+            <Plus size={16} /> ADD NEW ITEM
           </button>
         </div>
       </div>
 
-      {/* First-time guide */}
-      {categories.length === 0 && !loading && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-2xl flex items-start gap-3">
-          <span className="text-2xl">👋</span>
-          <div>
-            <p className="font-semibold text-orange-800">Welcome! Start by adding categories first</p>
-            <p className="text-sm text-orange-600 mt-0.5">
-              Create categories like ☕ Hot Drinks, 🧋 Cold Drinks, 🍕 Snacks — then add items under them.
-            </p>
-            <button onClick={() => setCatModal(true)} className="mt-2 btn-primary text-xs py-1.5 px-3">
-              + Add First Category
-            </button>
-          </div>
-        </motion.div>
-      )}
-
       {/* Category filters */}
       {categories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
-          {[{ id: 'all', name: `All (${items.length})`, icon: '📋' }, ...categories.map(c => ({ ...c, name: `${c.name} (${items.filter(i => i.category === c.id).length})` }))].map(cat => (
-            <button key={cat.id} onClick={() => setFilterCat(cat.id)}
-              className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap
-                ${filterCat === cat.id ? 'bg-brand-orange text-white shadow-orange' : 'bg-white text-gray-600 shadow-sm hover:text-brand-orange'}`}>
+        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 mb-10 scrollbar-hide">
+          <button
+            onClick={() => setFilterCat('all')}
+            className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+              filterCat === 'all'
+                ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                : 'bg-white text-gray-500 hover:text-brand-primary border border-gray-100 shadow-sm'
+            }`}
+          >
+            All Items
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => setFilterCat(cat.id)}
+              className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                filterCat === cat.id
+                  ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                  : 'bg-white text-gray-500 hover:text-brand-primary border border-gray-100 shadow-sm'
+              }`}
+            >
               {cat.icon} {cat.name}
             </button>
           ))}
@@ -347,61 +347,80 @@ export default function MenuManagementPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array(6).fill(0).map((_, i) => <div key={i} className="skeleton h-52 rounded-2xl" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          {Array(8).fill(0).map((_, i) => <div key={i} className="skeleton h-60 rounded-[2.5rem]" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
-          <div className="text-5xl mb-3">🍽️</div>
-          <p className="font-semibold text-gray-600">No items yet</p>
-          <p className="text-sm mt-1">Click "+ Add Item" to add your first menu item</p>
-          <button onClick={openAdd} className="btn-primary mt-4 text-sm">+ Add First Item</button>
+        <div className="text-center py-32 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+          <div className="text-6xl mb-6">🍽️</div>
+          <h3 className="font-display text-3xl font-black text-gray-900 tracking-tight">No Items Yet</h3>
+          <p className="text-gray-400 mt-4 max-w-xs mx-auto font-medium">Start building your menu by adding your first item.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {filtered.map(item => (
-            <motion.div key={item.id} layout className="card overflow-hidden group">
-              <div className="relative h-36 bg-gray-100">
+            <motion.div
+              key={item.id}
+              layout
+              className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] group hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500"
+            >
+              <div className="relative h-48 bg-gray-50 overflow-hidden">
                 {item.image
-                  ? <Image src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                  : <div className="w-full h-full flex items-center justify-center"><ImageIcon size={32} className="text-gray-300" /></div>}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                <div className="absolute bottom-2 left-3">
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded text-white ${item.isVeg ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {item.isVeg ? '🟢 VEG' : '🔴 NON-VEG'}
+                  ? <Image src={getValidImageUrl(item.image, "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&q=80")} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  : <div className="w-full h-full flex items-center justify-center text-gray-200"><ImageIcon size={40} /></div>}
+                
+                <div className="absolute top-4 left-4">
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${item.isVeg ? 'bg-green-500/10 text-green-600' : 'bg-red-500/10 text-red-600'} backdrop-blur-md border border-white/20`}>
+                    {item.isVeg ? 'Veg' : 'Non-Veg'}
                   </span>
                 </div>
+
                 {!item.isAvailable && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                    <span className="text-white text-xs font-semibold bg-black/60 px-3 py-1 rounded-full">Unavailable</span>
+                  <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-[2px] flex items-center justify-center">
+                    <span className="text-[10px] font-black text-white uppercase tracking-[0.3em] border-2 border-white/30 px-4 py-2 rounded-xl">Sold Out</span>
                   </div>
                 )}
-              </div>
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-800 text-sm truncate">{item.name}</h3>
-                    <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.description || 'No description'}</p>
-                    <p className="font-bold text-brand-orange mt-1.5">{formatCurrency(item.price)}</p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    <button onClick={() => handleToggle(item)} title={item.isAvailable ? 'Disable' : 'Enable'} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                      {item.isAvailable ? <ToggleRight size={22} className="text-green-500" /> : <ToggleLeft size={22} className="text-gray-300" />}
+
+                <div className="absolute top-4 right-4 flex flex-col gap-2">
+                    <button onClick={() => openEdit(item)} className="w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-gray-900 shadow-xl hover:bg-white hover:scale-110 active:scale-95 transition-all">
+                      <Pencil size={16} />
                     </button>
-                    <button onClick={() => openEdit(item)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-400 hover:text-blue-600 transition-colors">
-                      <Pencil size={15} />
+                    <button onClick={() => handleDelete(item.id, item.name)} className="w-10 h-10 bg-white/90 backdrop-blur-md rounded-xl flex items-center justify-center text-red-500 shadow-xl hover:bg-white hover:scale-110 active:scale-95 transition-all">
+                      <Trash2 size={16} />
                     </button>
-                    <button onClick={() => handleDelete(item.id, item.name)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-300 hover:text-red-500 transition-colors">
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                  <span className="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-100">
-                    {categories.find(c => c.id === item.category)?.icon} {categories.find(c => c.id === item.category)?.name || item.category}
-                  </span>
-                  {item.isBestseller && <span className="text-xs bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full border border-amber-100">⭐ Bestseller</span>}
-                  <span className="text-xs text-gray-400">⏱ {item.prepTime}m</span>
+              </div>
+
+              <div className="p-8">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    {categories.find(c => c.id === item.category)?.name || 'General'}
+                  </p>
+                  <button onClick={() => handleToggle(item)} className="transition-transform active:scale-90">
+                    {item.isAvailable 
+                      ? <ToggleRight size={28} className="text-brand-primary" /> 
+                      : <ToggleLeft size={28} className="text-gray-300" />}
+                  </button>
+                </div>
+
+                <h3 className="text-xl font-black text-gray-900 tracking-tight leading-tight mb-2 group-hover:text-brand-primary transition-colors truncate">{item.name}</h3>
+                <p className="text-[13px] text-gray-400 font-medium line-clamp-2 leading-relaxed mb-6">{item.description}</p>
+                
+                <div className="flex items-center justify-between pt-6 border-t border-gray-50">
+                   <div className="flex flex-col">
+                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Price</span>
+                     <span className="font-black text-xl text-gray-900">{formatCurrency(item.price)}</span>
+                   </div>
+                   <div className="flex -space-x-2">
+                      {item.isBestseller && (
+                        <div className="w-8 h-8 rounded-full bg-amber-100 border-2 border-white flex items-center justify-center text-amber-500" title="Bestseller">
+                          <Star size={12} fill="currentColor" />
+                        </div>
+                      )}
+                      <div className="w-8 h-8 rounded-full bg-gray-50 border-2 border-white flex items-center justify-center text-[10px] font-black text-gray-400" title="Prep Time">
+                        {item.prepTime}m
+                      </div>
+                   </div>
                 </div>
               </div>
             </motion.div>
@@ -409,109 +428,77 @@ export default function MenuManagementPage() {
         </div>
       )}
 
-      {/* ── Add/Edit Modal ──────────────────────────────────────────────────── */}
+      {/* ── Add/Edit Modal (Lightweight redesign) ──────────────────────────────────────────────────── */}
       <AnimatePresence>
         {modal.open && modal.item && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={closeModal} />
-            <motion.div initial={{ opacity: 0, scale: 0.94, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.94, y: 20 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-3xl">
+              className="fixed inset-0 bg-gray-900/40 backdrop-blur-md z-[100]" onClick={closeModal} />
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
+                <div className="px-10 py-8 border-b border-gray-100 flex items-center justify-between">
                   <div>
-                    <h2 className="font-display font-bold text-xl text-gray-800">
-                      {modal.isEdit ? '✏️ Edit Item' : '➕ Add New Item'}
+                    <h2 className="font-display text-3xl font-black text-gray-900 tracking-tighter">
+                      {modal.isEdit ? 'Update Item' : 'New Creation'}
                     </h2>
-                    <p className="text-xs text-gray-400 mt-0.5">{modal.isEdit ? 'Update details below' : 'Fill in all required fields'}</p>
+                    <p className="text-gray-400 text-sm font-medium mt-1">Refine your menu masterpiece</p>
                   </div>
-                  <button onClick={closeModal} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200">
-                    <X size={16} />
+                  <button onClick={closeModal} className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center hover:bg-gray-100 active:scale-95 transition-all text-gray-400 hover:text-gray-900">
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div className="p-6 space-y-5">
-                  {/* 🖼 Image uploader */}
+                <div className="flex-1 overflow-y-auto px-10 py-8 space-y-8 scrollbar-hide">
                   <ImageUploader value={modal.item.image || ''} onChange={url => setField('image', url)} />
 
-                  {/* Name */}
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">Item Name <span className="text-red-400">*</span></label>
-                    <input className="input-field" placeholder="e.g., Masala Chai, Samosa, Cold Coffee"
-                      value={modal.item.name || ''} onChange={e => setField('name', e.target.value)} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="md:col-span-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Item Identity</label>
+                        <input className="input-field" placeholder="Gourmet Chocolate Cake"
+                          value={modal.item.name || ''} onChange={e => setField('name', e.target.value)} />
+                     </div>
+                     <div className="md:col-span-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Soulful Description</label>
+                        <textarea className="input-field min-h-[100px]" placeholder="Describe the flavors..."
+                          value={modal.item.description || ''} onChange={e => setField('description', e.target.value)} />
+                     </div>
+                     <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Price (₹)</label>
+                        <input className="input-field font-black" type="number"
+                          value={modal.item.price || ''} onChange={e => setField('price', parseFloat(e.target.value) || 0)} />
+                     </div>
+                      <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Category</label>
+                        <select className="input-field font-black" value={modal.item.category || ''} onChange={e => setField('category', e.target.value)}>
+                          <option value="">Choose...</option>
+                          {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                        </select>
+                     </div>
                   </div>
 
-                  {/* Description */}
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">Description</label>
-                    <textarea className="input-field resize-none" rows={2} placeholder="A mouth-watering description..."
-                      value={modal.item.description || ''} onChange={e => setField('description', e.target.value)} />
+                  <div className="grid grid-cols-3 gap-4">
+                     {[
+                        { key: 'isVeg', label: 'VEG', icon: '🟢' },
+                        { key: 'isBestseller', label: 'STAR', icon: '⭐' },
+                        { key: 'isAvailable', label: 'LIVE', icon: '✅' },
+                     ].map(t => (
+                        <button key={t.key} onClick={() => setField(t.key, !(modal.item as any)[t.key])}
+                          className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${
+                            (modal.item as any)[t.key] ? 'border-brand-primary bg-brand-primary/5 text-brand-primary' : 'border-gray-100 text-gray-400'
+                          }`}>
+                           <span className="text-xl mb-1">{t.icon}</span>
+                           <span className="text-[10px] font-black tracking-widest">{t.label}</span>
+                        </button>
+                     ))}
                   </div>
+                </div>
 
-                  {/* Price + Category */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 mb-1.5 block">Price (₹) <span className="text-red-400">*</span></label>
-                      <input className="input-field" type="number" min="0" step="0.5" placeholder="0"
-                        value={modal.item.price || ''} onChange={e => setField('price', parseFloat(e.target.value) || 0)} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 mb-1.5 block">Category <span className="text-red-400">*</span></label>
-                      <select className="input-field" value={modal.item.category || ''} onChange={e => setField('category', e.target.value)}>
-                        <option value="">Select category...</option>
-                        {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Prep time + Rating */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 mb-1.5 block">Prep Time (mins)</label>
-                      <input className="input-field" type="number" min="1" max="120"
-                        value={modal.item.prepTime || 15} onChange={e => setField('prepTime', parseInt(e.target.value) || 15)} />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-gray-600 mb-1.5 block">Rating (1–5)</label>
-                      <input className="input-field" type="number" min="1" max="5" step="0.1"
-                        value={modal.item.rating || 4.5} onChange={e => setField('rating', parseFloat(e.target.value))} />
-                    </div>
-                  </div>
-
-                  {/* Toggle options */}
-                  <div className="bg-gray-50 rounded-2xl p-4">
-                    <p className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wide">Item Options</p>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { key: 'isVeg', label: 'Vegetarian', emoji: '🟢' },
-                        { key: 'isBestseller', label: 'Bestseller', emoji: '⭐' },
-                        { key: 'isAvailable', label: 'Available', emoji: '✅' },
-                      ].map(toggle => {
-                        const checked = (modal.item as any)[toggle.key] ?? false
-                        return (
-                          <button key={toggle.key} type="button" onClick={() => setField(toggle.key, !checked)}
-                            className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all
-                              ${checked ? 'border-brand-orange bg-orange-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
-                            <span className="text-xl">{toggle.emoji}</span>
-                            <span className={`text-xs font-medium ${checked ? 'text-brand-orange' : 'text-gray-500'}`}>
-                              {toggle.label}
-                            </span>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Save */}
-                  <button onClick={handleSave} disabled={saving}
-                    className="w-full btn-primary flex items-center justify-center gap-2 py-3.5 text-base disabled:opacity-60 disabled:cursor-not-allowed">
-                    {saving
-                      ? <><Loader2 size={18} className="animate-spin" /> Saving...</>
-                      : modal.isEdit
-                        ? <><CheckCircle2 size={18} /> Update Item</>
-                        : <><Plus size={18} /> Add to Menu</>}
-                  </button>
+                <div className="p-10 border-t border-gray-100 bg-gray-50/50">
+                   <button onClick={handleSave} disabled={saving} className="w-full btn-primary py-5 rounded-[1.5rem] shadow-xl shadow-brand-primary/20 flex items-center justify-center gap-3">
+                     {saving ? <Loader2 size={24} className="animate-spin" /> : <CheckCircle2 size={24} />}
+                     <span className="uppercase tracking-[0.2em] font-black text-sm">Save Menu Item</span>
+                   </button>
                 </div>
               </div>
             </motion.div>
@@ -519,36 +506,26 @@ export default function MenuManagementPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Category Modal ──────────────────────────────────────────────────── */}
+      {/* Category Modal (Small & Targeted) */}
       <AnimatePresence>
         {catModal && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" onClick={() => setCatModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6">
-                <div className="flex items-center justify-between mb-5">
-                  <h2 className="font-display font-bold text-xl text-gray-800">Add Category</h2>
-                  <button onClick={() => setCatModal(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200"><X size={16} /></button>
-                </div>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">Category Name</label>
-                    <input className="input-field" placeholder="e.g., Hot Beverages, Snacks, Desserts"
-                      value={newCat.name} onChange={e => setNewCat(v => ({ ...v, name: e.target.value }))}
-                      onKeyDown={e => e.key === 'Enter' && handleAddCategory()} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">Icon (emoji)</label>
-                    <input className="input-field text-2xl" placeholder="☕" value={newCat.icon}
-                      onChange={e => setNewCat(v => ({ ...v, icon: e.target.value }))} maxLength={4} />
-                  </div>
-                  <p className="text-xs text-gray-400">💡 Suggestions: ☕ 🧋 🍕 🍰 🥗 🍜 🥤 🍔 🍟 🌮 🫖 🧃</p>
-                  <div className="flex gap-3">
-                    <button onClick={() => setCatModal(false)} className="flex-1 btn-secondary text-sm">Cancel</button>
-                    <button onClick={handleAddCategory} className="flex-1 btn-primary text-sm">Add Category</button>
-                  </div>
+              className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-[120]" onClick={() => setCatModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+              className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+              <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm p-10">
+                <h3 className="text-2xl font-black text-gray-900 tracking-tighter mb-8">New Category</h3>
+                <div className="space-y-6">
+                   <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Category Name</label>
+                     <input className="input-field" placeholder="Pastries..." value={newCat.name} onChange={e => setNewCat(v => ({...v, name: e.target.value}))} />
+                   </div>
+                   <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Emoji Icon</label>
+                     <input className="input-field text-2xl" value={newCat.icon} onChange={e => setNewCat(v => ({...v, icon: e.target.value}))} />
+                   </div>
+                   <button onClick={handleAddCategory} className="w-full btn-primary py-4 rounded-2xl shadow-lg">CREATE</button>
                 </div>
               </div>
             </motion.div>

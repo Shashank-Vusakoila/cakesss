@@ -62,6 +62,9 @@ export const useCartStore = create<CartStore>()(
       total: () => get().subtotal() + get().tax(),
       itemCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
     }),
-    { name: 'bakes-delights-cart' }
+    {
+      name: 'bakes-delights-cart',
+      partialize: (state) => ({ items: state.items }),
+    }
   )
 )

@@ -135,7 +135,10 @@ export async function getDailyAnalytics(days = 7) {
   const orders = await getOrders()
   const map: Record<string, { revenue: number; orders: number }> = {}
   orders.forEach(o => {
-    if (o.paymentStatus !== 'paid') return
+    // Include if paid OR if status implies it's a successful transaction
+    const isSuccessful = o.paymentStatus === 'paid' || o.status === 'delivered' || o.status === 'completed'
+    if (!isSuccessful) return
+    
     const date = new Date(o.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
     if (!map[date]) map[date] = { revenue: 0, orders: 0 }
     map[date].revenue += o.total

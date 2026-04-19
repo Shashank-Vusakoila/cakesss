@@ -1,6 +1,6 @@
 # 🍵 Tea Time — Restaurant Digital Ordering System
 
-> **Every Sip, A Story** | Bhuvangiri, Telangana
+> **Every Bite, A Story** | Ghatkesar, Hyderabad
 
 A complete, production-ready digital restaurant ordering system built with Next.js 14, Firebase, Cloudinary, and Framer Motion.
 
@@ -101,4 +101,4 @@ Add all environment variables in Vercel Dashboard → Settings → Environment V
 
 ---
 
-**Built for Tea Time, Bhuvangiri 🍵**
+**Built for Bakes & Delights, Ghatkesar 🧁**

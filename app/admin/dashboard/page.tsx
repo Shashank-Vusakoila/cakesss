@@ -31,75 +31,82 @@ export default function DashboardPage() {
   const recentOrders = orders.slice(0, 8)
 
   return (
-    <div className="p-6">
-      <div className="mb-8 flex justify-between items-end">
+    <div className="p-0">
+      <div className="mb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div>
-          <h1 className="font-display text-2xl font-bold text-gray-800">Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-1">
+          <span className="text-[10px] font-black text-brand-primary uppercase tracking-[0.3em] mb-2 block">Overview</span>
+          <h1 className="font-display text-4xl font-black text-gray-900 tracking-tighter">Dashboard</h1>
+          <p className="text-gray-400 text-sm font-medium mt-1">
             {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
-        <Link href="/delivery" className="btn-primary text-sm flex items-center gap-2">
-          <Truck size={16} /> Open Delivery App
+        <Link href="/delivery" className="btn-primary text-xs py-3.5 px-6 shadow-[0_10px_30px_rgba(16,185,129,0.2)]">
+          <Truck size={16} /> GO TO DELIVERY APP
         </Link>
       </div>
 
       {/* Stats */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+          {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton h-32 rounded-3xl" />)}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
           {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              className="card p-5"
+              className="card p-6 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white group hover:bg-brand-primary transition-all duration-500"
             >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stat.color}`}>
-                <stat.icon size={20} />
+              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-white/20 transition-all ${stat.color}`}>
+                <stat.icon size={22} className="group-hover:text-white transition-colors" />
               </div>
-              <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
+              <div className="text-3xl font-black text-gray-900 tracking-tighter group-hover:text-white transition-colors">{stat.value}</div>
+              <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-2 group-hover:text-white/70 transition-colors">{stat.label}</div>
             </motion.div>
           ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent orders */}
-        <div className="lg:col-span-2 card p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-semibold text-gray-800">Recent Orders</h2>
-            <Link href="/admin/orders" className="text-xs text-brand-primary font-medium hover:underline">View All</Link>
+        <div className="lg:col-span-2 card p-8 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h2 className="font-display text-2xl font-black text-gray-900 tracking-tight">Recent Orders</h2>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Live Feed</p>
+            </div>
+            <Link href="/admin/orders" className="text-[11px] font-black text-brand-primary uppercase tracking-widest hover:underline px-4 py-2 bg-brand-primary/10 rounded-xl transition-all">View All</Link>
           </div>
           {loading ? (
-            <div className="space-y-3">
-              {Array(5).fill(0).map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)}
+            <div className="space-y-4">
+              {Array(5).fill(0).map((_, i) => <div key={i} className="skeleton h-20 rounded-2xl" />)}
             </div>
           ) : recentOrders.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">
-              <ShoppingBag size={32} className="mx-auto mb-2 opacity-40" />
-              <p className="text-sm">No orders yet</p>
+            <div className="text-center py-16 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-100">
+              <ShoppingBag size={48} className="mx-auto mb-4 text-gray-200" />
+              <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No orders yet</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {recentOrders.map(order => (
-                <div key={order.id} className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div key={order.id} className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50/50 hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-gray-100 group">
+                  <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center font-black text-gray-900 shadow-sm group-hover:bg-brand-primary group-hover:text-white transition-all">
+                    {order.customerName[0]}
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-700 truncate">{order.customerName}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">
+                    <p className="text-sm font-black text-gray-900 truncate">{order.customerName}</p>
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-tight mt-1">
                       {order.items.length} item{order.items.length !== 1 ? 's' : ''} • {timeAgo(order.createdAt)}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className={`badge border text-[10px] ${getStatusColor(order.status)}`}>
+                    <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${getStatusColor(order.status).replace('bg-', 'bg-opacity-10 text-').replace('text-', 'border-')}`}>
                       {order.status.replace(/_/g, ' ')}
                     </span>
-                    <p className="text-sm font-bold text-gray-700 mt-1">{formatCurrency(order.total)}</p>
+                    <p className="text-base font-black text-gray-900 mt-2">{formatCurrency(order.total)}</p>
                   </div>
                 </div>
               ))}
@@ -108,30 +115,32 @@ export default function DashboardPage() {
         </div>
 
         {/* Alerts */}
-        <div className="card p-6">
-          <h2 className="font-semibold text-gray-800 mb-5">Active Alerts</h2>
-          <div className="space-y-3">
+        <div className="card p-8 border-none shadow-[0_8px_30px_rgb(0,0,0,0.04)] bg-white h-fit">
+          <h2 className="font-display text-2xl font-black text-gray-900 tracking-tight mb-8">Alerts</h2>
+          <div className="space-y-4">
             {pendingOrders.length > 0 ? (
               pendingOrders.slice(0, 5).map(order => (
-                <div key={order.id} className="flex items-start gap-3 p-3 rounded-xl bg-brand-background border border-brand-primary/10">
-                  <AlertCircle size={16} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                <div key={order.id} className="flex items-start gap-4 p-4 rounded-2xl bg-amber-50 border border-amber-100 group hover:bg-amber-100 transition-all">
+                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-amber-500 shadow-sm flex-shrink-0">
+                    <Clock size={20} />
+                  </div>
                   <div>
-                    <p className="text-xs font-semibold text-brand-dark">{order.customerName}</p>
-                    <p className="text-xs text-brand-primary mt-0.5">
-                      {order.status === 'pending' ? 'Awaiting preparation' : 'Being prepared'}
+                    <p className="text-sm font-black text-amber-900 leading-tight">{order.customerName}</p>
+                    <p className="text-[12px] font-bold text-amber-700 mt-1 uppercase tracking-tight">
+                      {order.status === 'pending' ? 'Awaiting Accept' : 'In Preparation'}
                     </p>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-gray-400">
-                <CheckCircle size={28} className="mx-auto mb-2 text-green-400" />
-                <p className="text-sm">All caught up!</p>
+              <div className="text-center py-10 bg-green-50 rounded-[2rem] border border-green-100">
+                <CheckCircle size={40} className="mx-auto mb-3 text-green-500" />
+                <p className="text-sm font-black text-green-600 uppercase tracking-widest">Clear!</p>
               </div>
             )}
             {pendingOrders.length > 5 && (
-              <Link href="/admin/orders" className="text-xs text-brand-primary font-medium block text-center pt-1">
-                +{pendingOrders.length - 5} more orders
+              <Link href="/admin/orders" className="text-[11px] font-black text-brand-primary uppercase tracking-widest block text-center pt-4 hover:underline">
+                +{pendingOrders.length - 5} MORE ORDERS
               </Link>
             )}
           </div>

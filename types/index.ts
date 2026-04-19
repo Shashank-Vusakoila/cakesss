@@ -3,6 +3,7 @@ export interface MenuItem {
   name: string
   description: string
   price: number
+  originalPrice?: number
   image: string
   category: string
   rating: number
@@ -36,6 +37,8 @@ export interface Order {
   customerName: string
   customerPhone: string
   customerAddress?: string
+  customerLat?: number
+  customerLng?: number
   tableNumber?: number
   items: OrderItem[]
   subtotal: number
@@ -86,7 +89,16 @@ export interface UserProfile {
   phone?: string
   address?: string
   role: 'admin' | 'customer'
+  savedAddresses?: SavedAddress[]
   createdAt: Date
+}
+
+export interface SavedAddress {
+  id: string
+  label: string // e.g., 'Home', 'Work', 'Other'
+  address: string
+  lat: number
+  lng: number
 }
 
 export interface User {

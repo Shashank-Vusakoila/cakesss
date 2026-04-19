@@ -58,3 +58,29 @@ export function getStatusDescription(status: string): string {
   }
   return descriptions[status] || "Updating status..."
 }
+export function getValidImageUrl(url: string | undefined, fallback: string): string {
+  if (!url) return fallback;
+  // Check if it's a valid relative or absolute URL
+  if (url.startsWith('http') || url.startsWith('/') || url.startsWith('https')) {
+    return url;
+  }
+  return fallback;
+}
+
+export function capitalizeWords(str: string): string {
+  if (!str) return ''
+  return str.toLowerCase().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+}
+
+export function sanitizeBakeryData(str: string): string {
+  if (!str) return ''
+  const mappings: Record<string, string> = {
+    'bevareges': 'Beverages',
+    'cold coffe': 'Cold Coffee',
+    'cakes': 'Cakes',
+    'pastries': 'Pastries',
+    'breads': 'Breads',
+  }
+  const clean = str.trim().toLowerCase()
+  return mappings[clean] || capitalizeWords(str)
+}
