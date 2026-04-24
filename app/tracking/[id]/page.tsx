@@ -11,7 +11,6 @@ import dynamic from 'next/dynamic'
 // Dynamically import map components to avoid SSR issues
 const Map = dynamic(() => Promise.resolve(({ clientLocation, storeLocation, customerLocation, status }: any) => {
   const { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } = require('react-leaflet')
-  const { useState, useEffect } = require('react')
   const L = require('leaflet')
   require('leaflet/dist/leaflet.css')
 

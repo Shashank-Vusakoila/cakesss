@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getMenuItems, getCategories, addMenuItem, updateMenuItem, deleteMenuItem, addCategory } from '@/lib/firebase/firestore'
+import { getMenuItems, getCategories, addMenuItem, updateMenuItem, deleteMenuItem, addCategory, updateCategory, deleteCategory } from '@/lib/firebase/firestore'
 import { MenuItem, Category } from '@/types'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
