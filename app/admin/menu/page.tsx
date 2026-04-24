@@ -236,8 +236,7 @@ export default function MenuManagementPage() {
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState<{ open: boolean; item: Partial<MenuItem> | null; isEdit: boolean }>({ open: false, item: null, isEdit: false })
   const [saving, setSaving] = useState(false)
-  const [catModal, setCatModal] = useState(false)
-  const [newCat, setNewCat] = useState({ name: '', icon: '🍽️' })
+  const [catModal, setCatModal] = useState<{ open: boolean; cat: Partial<Category>; isEdit: boolean }>({ open: false, cat: { name: '', icon: '🍽️', image: '' }, isEdit: false })
   const [filterCat, setFilterCat] = useState('all')
 
   async function loadData() {
@@ -286,12 +285,25 @@ export default function MenuManagementPage() {
     toast.success(item.isAvailable ? 'Marked unavailable' : 'Marked available')
   }
 
-  const handleAddCategory = async () => {
-    if (!newCat.name.trim()) { toast.error('Category name required'); return }
-    await addCategory({ name: newCat.name, icon: newCat.icon, order: categories.length, isActive: true })
-    toast.success('Category added!')
-    setNewCat({ name: '', icon: '🍽️' })
-    setCatModal(false)
+  const handleSaveCategory = async () => {
+    if (!catModal.cat.name?.trim()) { toast.error('Category name required'); return }
+    if (catModal.isEdit && catModal.cat.id) {
+       await updateCategory(catModal.cat.id, catModal.cat)
+       toast.success('Category updated!')
+    } else {
+       await addCategory({ name: catModal.cat.name, icon: catModal.cat.icon || '🍽️', image: catModal.cat.image, order: categories.length, isActive: true })
+       toast.success('Category added!')
+    }
+    setCatModal({ open: false, cat: { name: '', icon: '🍽️', image: '' }, isEdit: false })
+    await loadData()
+  }
+
+  const handleDeleteCategory = async () => {
+    if (!catModal.cat.id) return
+    if (!confirm(`Delete category "${catModal.cat.name}"? This won't delete the items inside it.`)) return
+    await deleteCategory(catModal.cat.id)
+    toast.success('Category deleted!')
+    setCatModal({ open: false, cat: { name: '', icon: '🍽️', image: '' }, isEdit: false })
     await loadData()
   }
 
@@ -307,7 +319,7 @@ export default function MenuManagementPage() {
           <p className="text-gray-400 text-sm font-medium mt-1">{items.length} items across {categories.length} categories</p>
         </div>
         <div className="flex gap-3">
-          <button onClick={() => setCatModal(true)} className="btn-secondary text-xs px-6 py-3.5 flex items-center gap-2">
+          <button onClick={() => setCatModal({ open: true, cat: { name: '', icon: '🍽️', image: '' }, isEdit: false })} className="btn-secondary text-xs px-6 py-3.5 flex items-center gap-2">
             <Plus size={16} /> ADD CATEGORY
           </button>
           <button onClick={openAdd} className="btn-primary text-xs px-6 py-3.5 flex items-center gap-2 shadow-[0_10px_30px_rgba(16,185,129,0.2)]">
@@ -330,17 +342,24 @@ export default function MenuManagementPage() {
             All Items
           </button>
           {categories.map(cat => (
-            <button
-              key={cat.id}
-              onClick={() => setFilterCat(cat.id)}
-              className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                filterCat === cat.id
-                  ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
-                  : 'bg-white text-gray-500 hover:text-brand-primary border border-gray-100 shadow-sm'
-              }`}
-            >
-              {cat.icon} {cat.name}
-            </button>
+            <div key={cat.id} className="relative group/cat">
+              <button
+                onClick={() => setFilterCat(cat.id)}
+                className={`flex-shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  filterCat === cat.id
+                    ? 'bg-brand-primary text-white shadow-lg shadow-brand-primary/20'
+                    : 'bg-white text-gray-500 hover:text-brand-primary border border-gray-100 shadow-sm'
+                }`}
+              >
+                {cat.icon} {cat.name}
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); setCatModal({ open: true, cat, isEdit: true }) }}
+                className="absolute -top-2 -right-2 bg-white text-gray-400 hover:text-brand-primary border border-gray-100 shadow-sm rounded-full p-1.5 opacity-0 group-hover/cat:opacity-100 transition-opacity z-10"
+              >
+                <Pencil size={10} />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -508,24 +527,38 @@ export default function MenuManagementPage() {
 
       {/* Category Modal (Small & Targeted) */}
       <AnimatePresence>
-        {catModal && (
+        {catModal.open && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-[120]" onClick={() => setCatModal(false)} />
+              className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-[120]" onClick={() => setCatModal({ ...catModal, open: false })} />
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
               className="fixed inset-0 z-[130] flex items-center justify-center p-4">
-              <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm p-10">
-                <h3 className="text-2xl font-black text-gray-900 tracking-tighter mb-8">New Category</h3>
-                <div className="space-y-6">
+              <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md p-10 flex flex-col max-h-[90vh]">
+                <div className="flex justify-between items-start mb-6">
+                   <h3 className="text-2xl font-black text-gray-900 tracking-tighter">{catModal.isEdit ? 'Edit Category' : 'New Category'}</h3>
+                   <button onClick={() => setCatModal({ ...catModal, open: false })} className="p-2 bg-gray-50 rounded-full hover:bg-gray-100"><X size={16} /></button>
+                </div>
+                <div className="space-y-6 overflow-y-auto scrollbar-hide pr-2 pb-2">
+                   <div>
+                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Category Cover Image</label>
+                     <ImageUploader value={catModal.cat.image || ''} onChange={url => setCatModal(v => ({ ...v, cat: { ...v.cat, image: url } }))} />
+                   </div>
                    <div>
                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Category Name</label>
-                     <input className="input-field" placeholder="Pastries..." value={newCat.name} onChange={e => setNewCat(v => ({...v, name: e.target.value}))} />
+                     <input className="input-field" placeholder="Pastries..." value={catModal.cat.name || ''} onChange={e => setCatModal(v => ({...v, cat: { ...v.cat, name: e.target.value}}))} />
                    </div>
                    <div>
                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 block">Emoji Icon</label>
-                     <input className="input-field text-2xl" value={newCat.icon} onChange={e => setNewCat(v => ({...v, icon: e.target.value}))} />
+                     <input className="input-field text-2xl" value={catModal.cat.icon || ''} onChange={e => setCatModal(v => ({...v, cat: { ...v.cat, icon: e.target.value}}))} />
                    </div>
-                   <button onClick={handleAddCategory} className="w-full btn-primary py-4 rounded-2xl shadow-lg">CREATE</button>
+                   <div className="flex gap-3 pt-4">
+                     <button onClick={handleSaveCategory} className="flex-1 btn-primary py-4 rounded-2xl shadow-lg">{catModal.isEdit ? 'SAVE' : 'CREATE'}</button>
+                     {catModal.isEdit && (
+                       <button onClick={handleDeleteCategory} className="px-6 py-4 rounded-2xl bg-red-50 text-red-500 font-black tracking-widest text-xs uppercase hover:bg-red-100 transition-colors">
+                         DELETE
+                       </button>
+                     )}
+                   </div>
                 </div>
               </div>
             </motion.div>

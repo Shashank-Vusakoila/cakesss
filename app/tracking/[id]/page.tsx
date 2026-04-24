@@ -9,33 +9,73 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 
 // Dynamically import map components to avoid SSR issues
-const Map = dynamic(() => Promise.resolve(({ clientLocation, storeLocation, status }: any) => {
-  const { MapContainer, TileLayer, Marker, Popup, useMap } = require('react-leaflet')
+const Map = dynamic(() => Promise.resolve(({ clientLocation, storeLocation, customerLocation, status }: any) => {
+  const { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } = require('react-leaflet')
+  const { useState, useEffect } = require('react')
   const L = require('leaflet')
   require('leaflet/dist/leaflet.css')
 
-  const centerPos: [number, number] = clientLocation ? [clientLocation.lat, clientLocation.lng] : storeLocation
+  const driverPos: [number, number] | null = clientLocation ? [clientLocation.lat, clientLocation.lng] : null
+  const custPos: [number, number] | null = customerLocation ? [customerLocation.lat, customerLocation.lng] : null
+  const centerPos: [number, number] = driverPos || storeLocation
   
   const createCustomIcon = (type: 'delivery' | 'bakery' | 'home') => {
-    const bgClass = type === 'delivery' ? 'bg-brand-orange' : type === 'bakery' ? 'bg-brand-dark' : 'bg-brand-red'
-    const emoji = type === 'delivery' ? '🛵' : type === 'bakery' ? '🏪' : '🏠'
+    const bgClass = type === 'delivery' ? 'bg-brand-orange text-white' : type === 'bakery' ? 'bg-brand-dark text-white' : 'bg-white text-brand-orange'
+    const iconSvg = type === 'delivery' 
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>`
+      : type === 'bakery' 
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`
+      : `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`
     
     return L.divIcon({
-      html: `<div class="${bgClass} w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-orange border-2 border-white ring-4 ring-white/20">${emoji}</div>`,
+      html: `<div class="${bgClass} w-10 h-10 rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.3)] border-2 ${type === 'home' ? 'border-brand-orange' : 'border-white'} relative z-50">
+               ${iconSvg}
+               ${type === 'delivery' ? '<div class="absolute inset-0 rounded-full bg-brand-orange animate-ping opacity-50"></div>' : ''}
+             </div>`,
       className: '',
       iconSize: [40, 40],
-      iconAnchor: [20, 40],
-      popupAnchor: [0, -40]
+      iconAnchor: [20, 20],
+      popupAnchor: [0, -20]
     })
   }
 
-  function MapUpdater({ center }: { center: [number, number] }) {
+  function MapUpdater() {
     const map = useMap()
     useEffect(() => {
-      map.flyTo(center, map.getZoom(), { duration: 1.5 })
-    }, [center, map])
+      if (driverPos && storeLocation && custPos) {
+         const bounds = L.latLngBounds([storeLocation, driverPos, custPos])
+         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true, duration: 1.5 })
+      } else if (custPos && storeLocation) {
+         const bounds = L.latLngBounds([storeLocation, custPos])
+         map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, animate: true, duration: 1.5 })
+      } else {
+         map.flyTo(centerPos, 14, { duration: 1.5 })
+      }
+    }, [map, driverPos, custPos])
     return null
   }
+
+  // Fetch real road route from OSRM
+  const [routeCoordinates, setRouteCoordinates] = useState<[number, number][]>([])
+
+  useEffect(() => {
+    if (storeLocation && custPos) {
+      // We route from store to customer
+      const fetchRoute = async () => {
+        try {
+          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${storeLocation[1]},${storeLocation[0]};${custPos[1]},${custPos[0]}?overview=full&geometries=geojson`)
+          const data = await res.json()
+          if (data.routes && data.routes.length > 0) {
+            const coords = data.routes[0].geometry.coordinates.map((c: any) => [c[1], c[0]])
+            setRouteCoordinates(coords)
+          }
+        } catch (err) {
+          console.error("Routing error:", err)
+        }
+      }
+      fetchRoute()
+    }
+  }, [storeLocation, custPos])
 
   return (
     <MapContainer 
@@ -43,23 +83,44 @@ const Map = dynamic(() => Promise.resolve(({ clientLocation, storeLocation, stat
       zoom={15} 
       className="w-full h-full"
       zoomControl={false}
+      attributionControl={false}
     >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        />
-      <MapUpdater center={centerPos} />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+      <MapUpdater />
+      
+      {/* Real Road Route Line */}
+      {routeCoordinates.length > 0 && (
+        <>
+          <Polyline 
+            positions={routeCoordinates} 
+            pathOptions={{ color: '#000000', weight: 8, opacity: 0.3, lineCap: 'round', lineJoin: 'round' }} 
+          />
+          <Polyline 
+            positions={routeCoordinates} 
+            pathOptions={{ color: '#FC8019', weight: 4, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }} 
+          />
+        </>
+      )}
+
+      {/* Markers */}
       <Marker position={storeLocation} icon={createCustomIcon('bakery')}>
-        <Popup className="font-sans font-medium">B&D Bakery</Popup>
+        <Popup className="font-sans font-medium border-0 shadow-lg rounded-xl">Bakes & Delights</Popup>
       </Marker>
-      {clientLocation && (
-        <Marker position={[clientLocation.lat, clientLocation.lng]} icon={createCustomIcon('delivery')}>
-          <Popup className="font-sans font-medium">Track your delights!</Popup>
+      
+      {custPos && (
+        <Marker position={custPos} icon={createCustomIcon('home')}>
+          <Popup className="font-sans font-medium border-0 shadow-lg rounded-xl">Delivery Destination</Popup>
         </Marker>
       )}
-      </MapContainer>
-    )
-  }), { ssr: false })
+
+      {driverPos && (
+        <Marker position={driverPos} icon={createCustomIcon('delivery')}>
+          <Popup className="font-sans font-medium border-0 shadow-lg rounded-xl">Driver Location</Popup>
+        </Marker>
+      )}
+    </MapContainer>
+  )
+}), { ssr: false })
 
 const STORE_LOCATION: [number, number] = [17.4323611, 78.6057222]
 
@@ -191,8 +252,8 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
          </div>
 
          {/* Delivery Progress Timeline */}
-         <div className="p-10 flex-1">
-            <div className="space-y-8">
+         <div className="p-8 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="space-y-6">
                {[
                  { key: 'pending', label: 'Order Confirmed', sub: 'Oven ticket printed', icon: Sparkles },
                  { key: 'preparing', label: 'Baking Now', sub: 'Freshness in progress', icon: ChefHat },
@@ -204,20 +265,29 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
                  const active = isStepActive(order.status, step.key)
                  const current = order.status === step.key
                  return (
-                   <div key={step.key} className="flex gap-8 relative">
+                   <motion.div 
+                     initial={{ opacity: 0, x: -10 }} 
+                     animate={{ opacity: 1, x: 0 }} 
+                     transition={{ delay: i * 0.1 }}
+                     key={step.key} 
+                     className={`flex gap-6 relative p-3 rounded-2xl transition-colors ${current ? 'bg-brand-orange/5 border border-brand-orange/20 shadow-sm' : ''}`}
+                   >
                       {i < arr.length - 1 && (
-                         <div className={`absolute left-6 top-12 w-1 rounded-full h-12 transition-all duration-1000 ${active && isStepActive(order.status, arr[i+1].key) ? 'bg-brand-success' : 'bg-gray-100'}`} />
+                         <div className={`absolute left-[33px] top-12 w-[2px] rounded-full h-8 transition-all duration-1000 ${active && isStepActive(order.status, arr[i+1].key) ? 'bg-brand-success' : 'bg-gray-100'}`} />
                       )}
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 z-10 transition-all duration-700 ${
-                         active ? 'bg-brand-dark text-white shadow-xl rotate-0' : 'bg-gray-50 text-gray-200 -rotate-12'
-                       } ${current ? 'ring-8 ring-brand-orange/10 bg-brand-orange' : ''}`}>
-                         <step.icon size={20} className={current ? 'animate-pulse' : ''} />
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 z-10 transition-all duration-700 ${
+                         active ? 'bg-brand-dark text-white shadow-md' : 'bg-gray-50 text-gray-300'
+                       } ${current ? 'ring-4 ring-brand-orange/20 bg-brand-orange scale-110' : ''}`}>
+                         <step.icon size={18} className={current ? 'animate-pulse' : ''} />
                       </div>
-                      <div className="flex-1 pt-1">
-                         <h4 className={`text-base font-black tracking-tight ${active ? 'text-brand-dark' : 'text-gray-300'}`}>{step.label}</h4>
-                         <p className={`text-[11px] font-bold tracking-tight uppercase mt-0.5 ${active ? 'text-gray-400' : 'text-gray-100'}`}>{step.sub}</p>
+                      <div className="flex-1 pt-0.5">
+                         <h4 className={`text-sm font-black tracking-tight transition-colors ${current ? 'text-brand-orange' : active ? 'text-brand-dark' : 'text-gray-300'}`}>{step.label}</h4>
+                         <p className={`text-[10px] font-bold tracking-widest uppercase mt-0.5 ${current ? 'text-brand-orange/70' : active ? 'text-gray-400' : 'text-gray-200'}`}>{step.sub}</p>
                       </div>
-                   </div>
+                      {current && (
+                        <div className="w-2 h-2 rounded-full bg-brand-orange self-center animate-ping mr-2" />
+                      )}
+                   </motion.div>
                  )
                })}
             </div>
@@ -233,7 +303,7 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
                <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles size={24} className="text-white" /></div>
                <div className="flex items-center gap-5">
                   <div className="w-16 h-16 bg-brand-orange rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-lg border-2 border-white/20">
-                     {order.customerName[0]}
+                     A
                   </div>
                   <div className="flex-1">
                      <p className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-1">Delivery Partner</p>
@@ -245,7 +315,7 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
                         </div>
                      </div>
                   </div>
-                  <a href={`tel:${order.customerPhone}`} className="w-14 h-14 bg-brand-orange text-white rounded-2xl flex items-center justify-center shadow-orange hover:scale-110 transition-transform active:scale-95">
+                  <a href="tel:+919701003268" className="w-14 h-14 bg-brand-orange text-white rounded-2xl flex items-center justify-center shadow-orange hover:scale-110 transition-transform active:scale-95">
                      <Phone size={24} />
                   </a>
                </div>
@@ -258,6 +328,7 @@ export default function LiveTrackingPage({ params }: { params: { id: string } })
         <Map
           clientLocation={location}
           storeLocation={STORE_LOCATION}
+          customerLocation={order.customerLat && order.customerLng ? { lat: order.customerLat, lng: order.customerLng } : null}
           status={order.status}
         />
         

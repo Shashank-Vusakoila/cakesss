@@ -10,7 +10,7 @@ import CartDrawer from '@/components/cart/CartDrawer'
 import { getMenuItems, getCategories, subscribeToOrders, updateMenuItem } from '@/lib/firebase/firestore'
 import { MenuItem, Category, Order } from '@/types'
 import { useAuth } from '@/hooks/useAuth'
-import { getStatusDescription, getValidImageUrl, sanitizeBakeryData } from '@/utils'
+import { getStatusDescription, getValidImageUrl, sanitizeBakeryData, formatCurrency } from '@/utils'
 import { useCartStore } from '@/hooks/useCart'
 import toast from 'react-hot-toast'
 import {
@@ -19,7 +19,7 @@ import {
 
 export default function HomePage() {
   const { user, isAdmin, loading: authLoading } = useAuth()
-  const { addItem } = useCartStore()
+  const { addItem, openCart } = useCartStore()
   const router = useRouter()
 
   // Auto-redirect admin users to admin dashboard
@@ -32,6 +32,7 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [activeOrder, setActiveOrder] = useState<Order | null>(null)
+  const [pastOrders, setPastOrders] = useState<Order[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -61,6 +62,12 @@ export default function HomePage() {
         !['delivered', 'completed', 'cancelled'].includes(o.status)
       )
       setActiveOrder(active || null)
+      
+      const past = orders.filter(o => 
+        o.userId === user.uid && 
+        ['delivered', 'completed'].includes(o.status)
+      ).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      setPastOrders(past)
     })
     return () => unsub()
   }, [user])
@@ -77,7 +84,7 @@ export default function HomePage() {
   const displayBestsellers = bestsellers.length > 0 ? bestsellers : items.filter(item => (item.rating || 0) >= 4.5).slice(0, 3)
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] font-body selection:bg-brand-orange selection:text-white overflow-x-hidden">
+    <div className="min-h-screen bg-brand-background font-body selection:bg-brand-orange selection:text-white overflow-x-hidden">
       <Navbar />
       <CartDrawer />
 
@@ -146,7 +153,7 @@ export default function HomePage() {
                   initial={{ opacity: 0, y: 15 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.08 }}
-                  className="flex-1 bg-[#FAFAF8] rounded-2xl md:rounded-[2rem] p-5 md:p-8 flex items-center md:items-start gap-4 md:gap-6 border border-gray-100/50 hover:shadow-xl hover:shadow-gray-200/40 transition-all duration-500 group"
+                  className="flex-1 bg-brand-background rounded-2xl md:rounded-[2rem] p-5 md:p-8 flex items-center md:items-start gap-4 md:gap-6 border border-gray-100/50 hover:shadow-xl hover:shadow-gray-200/40 transition-all duration-500 group"
                >
                   <div className={`w-11 h-11 md:w-14 md:h-14 ${feature.bg} rounded-xl md:rounded-2xl flex items-center justify-center ${feature.color} flex-shrink-0 transform group-hover:scale-110 transition-transform`}>
                      <feature.icon size={20} className="md:hidden" />
@@ -194,10 +201,10 @@ export default function HomePage() {
                   transition={{ delay: i * 0.05 }}
                   className="flex flex-col items-center group cursor-pointer flex-shrink-0"
                 >
-                   <Link href={`/menu?category=${cat.name}`} className="flex flex-col items-center">
+                   <Link href={`/menu?category=${cat.id}`} className="flex flex-col items-center">
                     <div className="relative w-24 md:w-44 aspect-square rounded-full overflow-hidden mb-4 md:mb-8 transition-all duration-700 group-hover:scale-105 group-hover:rotate-3 ring-0 group-hover:ring-[12px] ring-brand-orange/5 shadow-lg group-hover:shadow-2xl snap-center">
                         <Image 
-                          src={getValidImageUrl(cat.icon, "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=80")} 
+                          src={getValidImageUrl(cat.image, "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=400&q=80")} 
                           alt={cat.name}
                           fill
                           className="object-cover"
@@ -211,8 +218,70 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* REORDER SECTION (MOCK / PAST ORDERS) */}
+      <AnimatePresence>
+        {user && pastOrders.length > 0 && (
+          <section className="py-12 bg-white border-t border-slate-50">
+            <div className="max-w-[1240px] mx-auto px-4">
+               <div className="flex items-center gap-3 mb-8 px-2">
+                  <div className="w-10 h-10 bg-[#118C4F]/10 rounded-full flex items-center justify-center text-[#118C4F]">
+                     <Clock size={20} />
+                  </div>
+                  <div>
+                     <h2 className="text-xl md:text-2xl font-black text-brand-dark tracking-tighter">Order Again</h2>
+                     <p className="text-xs text-slate-400 font-medium">Quickly reorder your past favorites</p>
+                  </div>
+               </div>
+               
+               <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x px-2">
+                  {pastOrders.slice(0, 5).map((order) => (
+                     <div key={order.id} className="snap-start flex-shrink-0 w-[280px] bg-white border border-slate-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center justify-between mb-3 border-b border-slate-50 pb-3">
+                           <div>
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{order.createdAt.toLocaleDateString()}</p>
+                              <p className="text-sm font-bold text-brand-dark">{order.items.length} Items</p>
+                           </div>
+                           <span className="text-sm font-black text-brand-dark">{formatCurrency(order.total)}</span>
+                        </div>
+                        <div className="flex gap-2 mb-4 overflow-hidden">
+                           {order.items.slice(0, 3).map((item, idx) => (
+                              <div key={idx} className="text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-md whitespace-nowrap overflow-hidden text-ellipsis max-w-[80px]">
+                                 {item.name}
+                              </div>
+                           ))}
+                           {order.items.length > 3 && <div className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-md">+{order.items.length - 3}</div>}
+                        </div>
+                        <button 
+                          onClick={() => {
+                            let added = false
+                            order.items.forEach(orderItem => {
+                               const fullItem = items.find(i => i.id === orderItem.menuItemId)
+                               if (fullItem) {
+                                 addItem(fullItem)
+                                 added = true
+                               }
+                            })
+                            if (added) {
+                               toast.success('Past order items added to cart!')
+                               openCart()
+                            } else {
+                               toast.error('Could not find those items in the current menu.')
+                            }
+                          }}
+                          className="w-full py-2.5 bg-brand-orange/10 text-brand-orange font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-brand-orange hover:text-white transition-colors"
+                        >
+                           Reorder
+                        </button>
+                     </div>
+                  ))}
+               </div>
+            </div>
+          </section>
+        )}
+      </AnimatePresence>
+
       {/* BESTSELLERS SECTION [REDESIGN] */}
-      <section className="py-16 md:py-32 bg-[#FFFAF8]">
+      <section className="py-16 md:py-32 bg-brand-background">
         <div className="max-w-[1240px] mx-auto px-4">
            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10 md:mb-20 px-2">
               <div className="flex items-center gap-3 md:gap-4">
@@ -255,7 +324,7 @@ export default function HomePage() {
                      />
                      
                      <div className="absolute top-6 left-6">
-                        <span className="bg-[#FF9A3C] text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest shadow-lg flex items-center gap-2">
+                        <span className="bg-brand-orange text-white text-[10px] font-black px-4 py-2 rounded-xl uppercase tracking-widest shadow-lg flex items-center gap-2">
                            <Sparkles size={12} fill="currentColor" /> Bestseller
                         </span>
                      </div>
